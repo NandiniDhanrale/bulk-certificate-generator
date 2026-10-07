@@ -22,6 +22,22 @@ class JobCreate(BaseModel):
     completion_date: date
     recipients: list[RecipientInput]
 
+    @field_validator("course_name")
+    @classmethod
+    def clean_course_name(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("course_name must not be blank")
+        return value
+
+    @field_validator("event_name")
+    @classmethod
+    def clean_event_name(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        value = value.strip()
+        return value or None
+
     @field_validator("recipients")
     @classmethod
     def recipients_must_not_be_empty(
