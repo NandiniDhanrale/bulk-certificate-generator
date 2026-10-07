@@ -39,8 +39,8 @@ def create_job(
 
     job = Job(
         id=job_id,
-        course_name=payload.course_name.strip(),
-        event_name=payload.event_name.strip() if payload.event_name else None,
+        course_name=payload.course_name,
+        event_name=payload.event_name,
         completion_date=payload.completion_date,
         status="pending",
         total_count=len(payload.recipients),
