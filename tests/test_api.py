@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 from app import jobs as jobs_module
 from app.database import Base, SessionLocal, engine
 from app.main import app
-from app.models import Job, Recipient
+from app.models import Recipient
 
 
 client = TestClient(app)
@@ -42,13 +42,18 @@ def test_create_generation_job():
     assert body["id"]
 
 
-def test_rejects_empty_recipients():
-    data = payload()
-    data["recipients"] = []
+def test_input_validation():
+    empty = payload()
+    empty["recipients"] = []
+    assert client.post("/jobs", json=empty).status_code == 422
 
-    response = client.post("/jobs", json=data)
+    invalid_email = payload()
+    invalid_email["recipients"][0]["email"] = "not-an-email"
+    assert client.post("/jobs", json=invalid_email).status_code == 422
 
-    assert response.status_code == 422
+    blank_course = payload()
+    blank_course["course_name"] = "   "
+    assert client.post("/jobs", json=blank_course).status_code == 422
 
 
 def test_certificate_generation_creates_pdf():
@@ -111,6 +116,12 @@ def test_individual_certificate_failure_does_not_stop_job(monkeypatch):
     assert recipients["Alice"]["status"] == "completed"
     assert recipients["Bob"]["status"] == "failed"
     assert "simulated generation failure" in recipients["Bob"]["error"]
+
+    with SessionLocal() as db:
+        alice = db.get(Recipient, recipients["Alice"]["id"])
+        assert alice is not None
+        assert alice.certificate_path is not None
+        assert Path(alice.certificate_path).exists()
 
 
 def test_retrieve_generated_certificate():
